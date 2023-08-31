@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace ScrabblePuzzleGenerator;
 
@@ -15,89 +14,145 @@ public enum LetterMarker
     TripleLetter,
 }
 
+public enum Direction
+{
+    Right,
+    Down,
+}
+
 class PuzzleGenerator
 {
-    readonly ScrabbleDictionary dictionary;
-    readonly Dictionary<char, int> values;
-    readonly int? modulo;
+    public const int BoardSize = 15;
+    public const int MaxWordLength = 5;
 
-    public PuzzleGenerator(string dictionaryFilename, string valuesFilename, int? modulo)
+    readonly WordsDatabase wordsDb;
+
+    public PuzzleGenerator(WordsDatabase wordsDb)
     {
-        this.dictionary = new(dictionaryFilename);
-        this.values = ReadValues(valuesFilename);
-        this.modulo = modulo;
+        this.wordsDb = wordsDb;
     }
 
-    public List<(char, LetterMarker)[]> GeneratePuzzle(int[] valuesSequence)
+    public IEnumerable<List<(char, LetterMarker)[]>> GeneratePuzzle(ushort[] valuesSequence)
     {
-        // TODO: implement the actual algorithm
-        List<(char, LetterMarker)[]> list = new();
-
-        var letters = new (char, LetterMarker)[6];
-        string word = "rukola";
-        for (int i = 0; i < 6; i++)
+        foreach (var (word, startX) in wordsDb.GetStartingWords(valuesSequence[0]))
         {
-            letters[i] = (word[i], LetterMarker.None);
+            var occupiedSquares = new bool[BoardSize, BoardSize];
+            for (int x = startX; x < startX + word.Length; x++)
+                occupiedSquares[x, 7] = true;
+            var results = GeneratePuzzleInner(
+                valuesSequence[1..],
+                occupiedSquares,
+                new[] { (new WordPositionDefinition(startX, 7, Direction.Right), word) });
+            foreach (var result in results)
+                yield return result;
         }
-        letters[3].Item2 = LetterMarker.StartingSquare;
-        letters[1].Item2 = LetterMarker.DoubleWord;
-        letters[5].Item2 = LetterMarker.TripleWord;
-        list.Add(letters);
-        
-
-        var letters2 = new (char, LetterMarker)[6];
-        string word2 = "lavice";
-        for (int i = 0; i < 6; i++)
-        {
-            letters2[i] = (word2[i], LetterMarker.None);
-        }
-        letters2[0].Item2 = LetterMarker.Reused;
-        letters2[4].Item2 = LetterMarker.TripleLetter;
-        letters2[5].Item2 = LetterMarker.DoubleLetter;
-        list.Add(letters2);
-
-        return list;
     }
 
-    int EvaluateWord(string word, int[] doubledIndices, int[] tripledIndices)
+    IEnumerable<List<(char, LetterMarker)[]>> GeneratePuzzleInner(
+        ushort[] valuesSequence,
+        bool[,] occupiedSquares,
+        (WordPositionDefinition, string)[] placedWords)
     {
-        int[] values = new int[word.Length];
-        for (int i = 0; i < word.Length; i++)
+        foreach (var (pos, word) in placedWords)
         {
-            values[i] = this.values[word[i]];
-        }
-        foreach (int i in doubledIndices)
-        {
-            values[i] *= 2;
-        }
-        foreach (int i in tripledIndices)
-        {
-            values[i] *= 3;
-        }
+            for (int wordIndex = 0; wordIndex < word.Length; wordIndex++)
+            {
+                int wordDirectionCoord = (pos.direction == Direction.Right ? pos.startX : pos.startY) + wordIndex;
+                int middlePerpendicularCoord = pos.direction == Direction.Right ? pos.startY : pos.startX;
+                int perpendicularCoord = middlePerpendicularCoord;
+                int downAvailable = 0;
+                while (downAvailable < MaxWordLength)
+                {
+                    perpendicularCoord++;
+                    if (perpendicularCoord >= BoardSize)
+                        break;
+                    if (pos.direction == Direction.Right)
+                    {
+                        if (occupiedSquares[wordDirectionCoord, perpendicularCoord])
+                            break;
+                    }
+                    else
+                    {
+                        if (occupiedSquares[perpendicularCoord, wordDirectionCoord])
+                            break;
+                    }
+                    downAvailable++;
+                }
 
-        int sum = 0;
-        foreach (int value in values)
-        {
-            sum += value;
+                perpendicularCoord = middlePerpendicularCoord;
+                int upAvailable = 0;
+                while (upAvailable < MaxWordLength)
+                {
+                    perpendicularCoord--;
+                    if (perpendicularCoord < 0)
+                        break;
+                    if (pos.direction == Direction.Right)
+                    {
+                        if (occupiedSquares[wordDirectionCoord, perpendicularCoord])
+                            break;
+                    }
+                    else
+                    {
+                        if (occupiedSquares[perpendicularCoord, wordDirectionCoord])
+                            break;
+                    }
+                    upAvailable++;
+                }
+
+                int maxWordLength = downAvailable + upAvailable + 1;
+                if (maxWordLength <= 1)
+                    continue;
+
+                for (perpendicularCoord = middlePerpendicularCoord - upAvailable; perpendicularCoord <= middlePerpendicularCoord; perpendicularCoord++)
+                {
+                    yield return new();
+                }
+            }
         }
-        return sum;
     }
 
-    static Dictionary<char, int> ReadValues(string filename)
+    public static int GetWordMultiplier(WordPositionDefinition wordPos, int len)
     {
-        Dictionary<char, int> values = new();
-        string[] lines = File.ReadAllLines(filename);
-        foreach (string line in lines)
+        int startX = wordPos.startX;
+        int y = wordPos.startY;
+
+        if (wordPos.direction == Direction.Down)
+            (startX, y) = (y, startX);
+
+        int endX = startX + len - 1;
+
+        // first / last row
+        if (y == 0 || y == BoardSize - 1)
+            return (startX == 0 || endX == BoardSize - 1 || (startX <= 7 && endX >= 7)) ? 3 : 1;
+
+        // row indices 1-4 and 10-13
+        for (int i = 1; i <= 4; i++)
         {
-            string[] parts = line.Split(' ');
-            if (parts.Length != 2)
-                throw new InvalidDataException("Invalid values file format.");
+            int firstBonus = i;
+            int secondBonus = BoardSize - 1 - i;
 
-            if (parts[0].Length != 1)
-                throw new InvalidDataException("Invalid values file format.");
-
-            values[parts[0][0]] = int.Parse(parts[1]);
+            if (y == firstBonus || y == secondBonus)
+                return ((startX <= firstBonus && endX >= firstBonus) || (startX <= secondBonus && endX >= secondBonus)) ? 2 : 1;
         }
-        return values;
+
+        // the middle row
+        if (y == 7)
+            if (startX <= 7 && endX >= 7) return 2;
+            else if (startX == 0 || endX == BoardSize - 1) return 3;
+        return 1;
+    }
+}
+
+public readonly struct WordPositionDefinition
+{
+    public readonly int startX;
+    public readonly int startY;
+    public readonly Direction direction;
+
+    public WordPositionDefinition(int startX, int startY, Direction direction)
+    {
+        this.startX = startX;
+        this.startY = startY;
+        this.direction = direction;
     }
 }

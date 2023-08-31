@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 
 namespace ScrabblePuzzleGenerator;
 class Program
 {
-    static ScrabbleDictionary dictionary = new("blex.txt");
     static int Main(string[] args)
     {
         if (args.Length == 1 && (args[0] == "--help" || args[0] == "-h"))
@@ -27,14 +25,17 @@ class Program
                 return 1;
             }
         }
-        PuzzleGenerator generator = new("blex.txt", "letter_values.txt", 26);
-        int[] valuesSequence = new int[plaintext.Length];
+
+        WordsDatabase wordsDb = new WordsDatabase("blex.txt", "letter_values.txt", 26);
+        var generator = new PuzzleGenerator(wordsDb);
+        var valuesSequence = new ushort[plaintext.Length];
         for (int i = 0; i < plaintext.Length; i++)
         {
-            valuesSequence[i] = plaintext[i] - 'a';
+            valuesSequence[i] = (ushort)(plaintext[i] - 'a');
         }
-        var result = generator.GeneratePuzzle(valuesSequence);
-        Console.WriteLine(new ResultPrinter(new Options(enableColors)).PrintResult(result));
+        var printer = new ResultPrinter(new Options(enableColors));
+        foreach (var result in generator.GeneratePuzzle(valuesSequence))
+            Console.WriteLine(printer.PrintResult(result));
         return 0;
     }
 
