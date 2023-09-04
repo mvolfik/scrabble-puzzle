@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 
 namespace ScrabblePuzzleGenerator;
 
@@ -32,114 +34,227 @@ class PuzzleGenerator
         this.wordsDb = wordsDb;
     }
 
+    static readonly LetterMarker[,] ScrabbleBoard = new LetterMarker[BoardSize, BoardSize] {
+        { LetterMarker.TripleWord, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.TripleWord },
+        { LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None },
+        { LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None },
+        { LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter },
+        { LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None },
+        { LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None },
+        { LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None },
+        { LetterMarker.TripleWord, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.StartingSquare, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.TripleWord },
+        { LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None },
+        { LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None },
+        { LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.None },
+        { LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter },
+        { LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None },
+        { LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None },
+        { LetterMarker.TripleWord, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.TripleWord }
+    };
+
+    static (ushort wordBonus, bool isDoubled, bool isTripled) GetBonusFromMarker(LetterMarker marker) => marker switch
+    {
+        LetterMarker.StartingSquare or LetterMarker.DoubleWord => (2, false, false),
+        LetterMarker.TripleWord => (3, false, false),
+        LetterMarker.DoubleLetter => (1, true, false),
+        LetterMarker.TripleLetter => (1, false, true),
+        _ => (1, false, false),
+    };
+
+    IEnumerable<string> GetWordsForPosition(WordPositionDefinition pos, ushort value, byte specifiedLetterIndex, char specifiedLetter)
+    {
+        ushort wordMultiplier = 1;
+        var doubledIndices = new List<byte>();
+        var tripledIndices = new List<byte>();
+        for (byte i = 0; i < pos.length; i++)
+        {
+            if (i == specifiedLetterIndex) // specified letter, i.e. already placed, ignore bonuses here
+                continue;
+            var (wordBonus, isDoubled, isTripled) = GetBonusFromMarker(pos.direction == Direction.Right
+                ? ScrabbleBoard[pos.startX + i, pos.startY]
+                : ScrabbleBoard[pos.startX, pos.startY + i]);
+            value += wordBonus;
+            if (isDoubled)
+                doubledIndices.Add(i);
+            if (isTripled)
+                tripledIndices.Add(i);
+        }
+        DatabaseKey key = new(value, pos.length, specifiedLetterIndex, specifiedLetter, doubledIndices.ToArray(), tripledIndices.ToArray());
+        return wordsDb.GetWords(key, wordMultiplier);
+    }
+
+    static void MarkSquare(ref byte[,] grid, int x, int y, int wordIndex)
+    {
+        if (grid[x, y] == FreeSquare)
+            grid[x, y] = (byte)wordIndex;
+        else
+            grid[x, y] = SquareNeighboringMultipleWords;
+    }
+
+    const byte FreeSquare = byte.MaxValue;
+    // square unusable under any circumstances
+    const byte SquareNeighboringMultipleWords = byte.MaxValue - 1;
+
+    static void MarkSquares(ref byte[,] grid, WordPositionDefinition pos, int wordIndex)
+    {
+        if (pos.direction == Direction.Right)
+        {
+            for (int x = pos.startX; x < pos.startX + pos.length; x++)
+            {
+                MarkSquare(ref grid, x, pos.startY, wordIndex);
+                if (pos.startY > 0)
+                    MarkSquare(ref grid, x, pos.startY - 1, wordIndex);
+                if (pos.startY < BoardSize - 1)
+                    MarkSquare(ref grid, x, pos.startY + 1, wordIndex);
+            }
+            if (pos.startX > 0)
+                MarkSquare(ref grid, pos.startX - 1, pos.startY, wordIndex);
+            if (pos.startX < BoardSize - 1)
+                MarkSquare(ref grid, pos.startX + 1, pos.startY, wordIndex);
+
+        }
+        else
+        {
+            for (int y = pos.startY; y < pos.startY + pos.length; y++)
+            {
+                MarkSquare(ref grid, pos.startX, y, wordIndex);
+                if (pos.startX > 0)
+                    MarkSquare(ref grid, pos.startX - 1, y, wordIndex);
+                if (pos.startX < BoardSize - 1)
+                    MarkSquare(ref grid, pos.startX + 1, y, wordIndex);
+            }
+            if (pos.startY > 0)
+                MarkSquare(ref grid, pos.startX, pos.startY - 1, wordIndex);
+            if (pos.startY < BoardSize - 1)
+                MarkSquare(ref grid, pos.startX, pos.startY + 1, wordIndex);
+        }
+    }
+
     public IEnumerable<List<(char, LetterMarker)[]>> GeneratePuzzle(ushort[] valuesSequence)
     {
+        var occupiedSquares = new byte[BoardSize, BoardSize];
+        for (int y = 0; y < BoardSize; y++)
+            for (int x = 0; x < BoardSize; x++)
+                occupiedSquares[x, y] = FreeSquare;
+
         foreach (var (word, startX) in wordsDb.GetStartingWords(valuesSequence[0]))
         {
-            var occupiedSquares = new bool[BoardSize, BoardSize];
-            for (int x = startX; x < startX + word.Length; x++)
-                occupiedSquares[x, 7] = true;
-            var results = GeneratePuzzleInner(
-                valuesSequence[1..],
-                occupiedSquares,
-                new[] { (new WordPositionDefinition(startX, 7, Direction.Right), word) });
+            var squaresCopy = (byte[,])occupiedSquares.Clone();
+            // starting only with right direction, down would be equal just with flipped x/y
+            WordPositionDefinition wordPositionDefinition = new(startX, 7, Direction.Right, (byte)word.Length);
+            MarkSquares(ref squaresCopy, wordPositionDefinition, 0);
+            var placedWords = new (WordPositionDefinition, string)[valuesSequence.Length];
+            placedWords[0] = (wordPositionDefinition, word);
+            var results = GeneratePuzzleInner(1, valuesSequence, squaresCopy, placedWords);
             foreach (var result in results)
                 yield return result;
         }
     }
 
+    List<(char, LetterMarker)[]> GetMarkersFromSolution((WordPositionDefinition, string)[] placedWords)
+    {
+        var board = (LetterMarker[,])ScrabbleBoard.Clone();
+        var result = new List<(char, LetterMarker)[]>(placedWords.Length);
+        for (int i = 0; i < placedWords.Length; i++)
+        {
+            var (pos, word) = placedWords[i];
+            var markers = new (char, LetterMarker)[word.Length];
+            int x = pos.startX;
+            int y = pos.startY;
+            for (int j = 0; j < word.Length; j++)
+            {
+                markers[j] = (word[j], board[x, y]);
+                board[x, y] = LetterMarker.Reused;
+                if (pos.direction == Direction.Right)
+                    x++;
+                else
+                    y++;
+            }
+            result.Add(markers);
+        }
+        return result;
+    }
+
     IEnumerable<List<(char, LetterMarker)[]>> GeneratePuzzleInner(
+        int index,
         ushort[] valuesSequence,
-        bool[,] occupiedSquares,
+        byte[,] occupiedSquares,
         (WordPositionDefinition, string)[] placedWords)
     {
-        foreach (var (pos, word) in placedWords)
+        if (index == valuesSequence.Length)
         {
-            for (int wordIndex = 0; wordIndex < word.Length; wordIndex++)
+            yield return GetMarkersFromSolution(placedWords);
+            yield break;
+        }
+
+        for (int placedWordI = 0; placedWordI < index; placedWordI++)
+        {
+            var (pos, word) = placedWords[placedWordI];
+
+            bool isOccupied(int wordDirectionCoord, int perpendicularCoord)
             {
-                int wordDirectionCoord = (pos.direction == Direction.Right ? pos.startX : pos.startY) + wordIndex;
+                var value = pos.direction == Direction.Right
+                    ? occupiedSquares[wordDirectionCoord, perpendicularCoord]
+                    : occupiedSquares[perpendicularCoord, wordDirectionCoord];
+                return value != FreeSquare && value != placedWordI;
+            }
+
+            for (int letterIndex = 0; letterIndex < word.Length; letterIndex++)
+            {
+                int wordDirectionCoord = (pos.direction == Direction.Right ? pos.startX : pos.startY) + letterIndex;
                 int middlePerpendicularCoord = pos.direction == Direction.Right ? pos.startY : pos.startX;
-                int perpendicularCoord = middlePerpendicularCoord;
-                int downAvailable = 0;
-                while (downAvailable < MaxWordLength)
+                int perpendicularCoordMin = middlePerpendicularCoord;
+                while (perpendicularCoordMin > middlePerpendicularCoord - MaxWordLength + 1)
                 {
-                    perpendicularCoord++;
-                    if (perpendicularCoord >= BoardSize)
+                    perpendicularCoordMin--;
+                    if (perpendicularCoordMin < 0 || isOccupied(wordDirectionCoord, perpendicularCoordMin))
+                    {
+                        perpendicularCoordMin++;
                         break;
-                    if (pos.direction == Direction.Right)
-                    {
-                        if (occupiedSquares[wordDirectionCoord, perpendicularCoord])
-                            break;
                     }
-                    else
+                }
+                int perpendicularCoordMax = middlePerpendicularCoord;
+                while (perpendicularCoordMax < middlePerpendicularCoord + MaxWordLength - 1)
+                {
+                    perpendicularCoordMax++;
+                    if (perpendicularCoordMax >= BoardSize || isOccupied(wordDirectionCoord, perpendicularCoordMax))
                     {
-                        if (occupiedSquares[perpendicularCoord, wordDirectionCoord])
-                            break;
+                        perpendicularCoordMax--;
+                        break;
                     }
-                    downAvailable++;
                 }
 
-                perpendicularCoord = middlePerpendicularCoord;
-                int upAvailable = 0;
-                while (upAvailable < MaxWordLength)
+                for (int startCoord = perpendicularCoordMin; startCoord <= middlePerpendicularCoord; startCoord++)
                 {
-                    perpendicularCoord--;
-                    if (perpendicularCoord < 0)
-                        break;
-                    if (pos.direction == Direction.Right)
+                    for (int endCoord = middlePerpendicularCoord; endCoord <= perpendicularCoordMax; endCoord++)
                     {
-                        if (occupiedSquares[wordDirectionCoord, perpendicularCoord])
-                            break;
+                        byte length = (byte)(endCoord - startCoord + 1);
+                        if (length > MaxWordLength)
+                            continue;
+                        var nextDir = pos.direction == Direction.Right ? Direction.Down : Direction.Right;
+                        var nextPos = new WordPositionDefinition(
+                            nextDir == Direction.Right ? startCoord : wordDirectionCoord,
+                            nextDir == Direction.Right ? wordDirectionCoord : startCoord,
+                            nextDir,
+                            length);
+                        foreach (var nextWord in GetWordsForPosition(
+                            nextPos,
+                            valuesSequence[index],
+                            (byte)(middlePerpendicularCoord - startCoord),
+                            word[letterIndex]))
+                        {
+                            var squaresCopy = (byte[,])occupiedSquares.Clone();
+                            MarkSquares(ref squaresCopy, nextPos, placedWordI);
+                            placedWords[index] = (nextPos, nextWord);
+                            foreach (var result in GeneratePuzzleInner(index + 1, valuesSequence, squaresCopy, placedWords))
+                            {
+                                yield return result;
+                            }
+                        }
                     }
-                    else
-                    {
-                        if (occupiedSquares[perpendicularCoord, wordDirectionCoord])
-                            break;
-                    }
-                    upAvailable++;
-                }
-
-                int maxWordLength = downAvailable + upAvailable + 1;
-                if (maxWordLength <= 1)
-                    continue;
-
-                for (perpendicularCoord = middlePerpendicularCoord - upAvailable; perpendicularCoord <= middlePerpendicularCoord; perpendicularCoord++)
-                {
-                    yield return new();
                 }
             }
         }
-    }
-
-    public static int GetWordMultiplier(WordPositionDefinition wordPos, int len)
-    {
-        int startX = wordPos.startX;
-        int y = wordPos.startY;
-
-        if (wordPos.direction == Direction.Down)
-            (startX, y) = (y, startX);
-
-        int endX = startX + len - 1;
-
-        // first / last row
-        if (y == 0 || y == BoardSize - 1)
-            return (startX == 0 || endX == BoardSize - 1 || (startX <= 7 && endX >= 7)) ? 3 : 1;
-
-        // row indices 1-4 and 10-13
-        for (int i = 1; i <= 4; i++)
-        {
-            int firstBonus = i;
-            int secondBonus = BoardSize - 1 - i;
-
-            if (y == firstBonus || y == secondBonus)
-                return ((startX <= firstBonus && endX >= firstBonus) || (startX <= secondBonus && endX >= secondBonus)) ? 2 : 1;
-        }
-
-        // the middle row
-        if (y == 7)
-            if (startX <= 7 && endX >= 7) return 2;
-            else if (startX == 0 || endX == BoardSize - 1) return 3;
-        return 1;
     }
 }
 
@@ -148,11 +263,13 @@ public readonly struct WordPositionDefinition
     public readonly int startX;
     public readonly int startY;
     public readonly Direction direction;
+    public readonly byte length;
 
-    public WordPositionDefinition(int startX, int startY, Direction direction)
+    public WordPositionDefinition(int startX, int startY, Direction direction, byte length)
     {
         this.startX = startX;
         this.startY = startY;
         this.direction = direction;
+        this.length = length;
     }
 }

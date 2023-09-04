@@ -34,11 +34,11 @@ class WordsDatabase
 
         for (ushort val = key.value; ; val += (ushort)modulo)
         {
-            if (val % wordMultiplier != 0)
-                continue;
             ushort realVal = (ushort)(val / wordMultiplier);
             if (realVal > maxValue)
                 break;
+            if (val % wordMultiplier != 0)
+                continue;
             var words = this.words.GetValueOrDefault(new(
                 key,
                 realVal,
@@ -65,8 +65,8 @@ class WordsDatabase
                         doubledIndices = new[] { (byte)(3 - startX) };
                     else if (startX + len - 1 >= 11)
                         doubledIndices = new[] { (byte)(11 - startX) };
-                    DatabaseKey key = new DatabaseKey(value, len, 0, c, doubledIndices, Array.Empty<byte>());
-                    foreach (var word in GetWords(key))
+                    var key = new DatabaseKey(value, len, 0, c, doubledIndices, Array.Empty<byte>());
+                    foreach (var word in GetWords(key, 2))
                         yield return (word, (byte)startX);
                 }
             }
@@ -108,7 +108,16 @@ class WordsDatabase
         {
             var letterValues = new ushort[w.Length];
             for (byte i = 0; i < w.Length; i++)
-                letterValues[i] = values.GetValueOrDefault(w[i], (ushort)0);
+            {
+                if (!values.ContainsKey(w[i]))
+                {
+                    // these words are technically valid, just that they can only be played with a joker (= 0 points for given letter).
+                    // But let's ignore them, they are obscure anyway.
+                    Console.Error.WriteLine($"Warning: Unknown value of letter '{w[i]}' in word '{w}', skipping");
+                    goto readNextWord;
+                }
+                letterValues[i] = values[w[i]];
+            }
             var baseValue = (ushort)letterValues.Sum(k => k);
             if (baseValue > maxValue)
                 maxValue = baseValue;
@@ -129,8 +138,6 @@ class WordsDatabase
                 // single doubled or tripled index
                 for (byte bonusIndex = 0; bonusIndex < w.Length; bonusIndex++)
                 {
-                    if (bonusIndex == specifiedIndex)
-                        continue;
                     var val2 = (ushort)(baseValue + letterValues[bonusIndex]);
                     var val3 = (ushort)(baseValue + letterValues[bonusIndex] * 2);
                     if (val3 > maxValue)
@@ -147,7 +154,7 @@ class WordsDatabase
                 }
 
                 // two tripled indices 5 squares apart or doubled indices 3 or 5 squares apart
-                foreach (byte dist in new[] { 3, 5 })
+                foreach (var dist in new byte[] { 3, 5 })
                 {
                     for (byte bonusIndex1 = 0; bonusIndex1 + dist - 1 < w.Length; bonusIndex1++)
                     {
@@ -177,6 +184,7 @@ class WordsDatabase
                     }
                 }
             }
+        readNextWord: { }
         }
 
         int keyCount = 0;
