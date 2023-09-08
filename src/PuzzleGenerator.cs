@@ -108,7 +108,7 @@ class PuzzleGenerator
             }
             if (pos.startX > 0)
                 MarkSquare(ref grid, pos.startX - 1, pos.startY, wordIndex);
-            if (pos.startX < BoardSize - 1)
+            if (pos.startX + pos.length < BoardSize)
                 MarkSquare(ref grid, pos.startX + pos.length, pos.startY, wordIndex);
 
         }
@@ -124,9 +124,10 @@ class PuzzleGenerator
             }
             if (pos.startY > 0)
                 MarkSquare(ref grid, pos.startX, pos.startY - 1, wordIndex);
-            if (pos.startY < BoardSize - 1)
+            if (pos.startY + pos.length < BoardSize)
                 MarkSquare(ref grid, pos.startX, pos.startY + pos.length, wordIndex);
         }
+
     }
 
     static void PrintGrid(ref byte[,] grid)

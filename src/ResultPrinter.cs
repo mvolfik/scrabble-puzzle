@@ -106,7 +106,7 @@ class ResultPrinter
             {
                 if (grid[x, y] != null)
                     builder.Append(grid[x, y].ToString().ToUpper());
-                if (y < PuzzleGenerator.BoardSize - 1) builder.Append('\t');
+                if (x < PuzzleGenerator.BoardSize - 1) builder.Append('\t');
             }
             builder.Append('\n');
         }
