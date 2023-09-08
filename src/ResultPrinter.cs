@@ -20,7 +20,6 @@ class ResultPrinter
         var markers = GetMarkersForWordSequence(result.ConvertAll(x => x.Item1).ToArray());
         for (int i = 0; i < result.Count; i++)
         {
-
             var (pos, word) = result[i];
             bool first = true;
             for (int j = 0; j < word.Length; j++)
@@ -36,6 +35,12 @@ class ResultPrinter
         }
         if (options.enableColors)
             builder.Append("\u001b[39m");
+
+        if (options.enableGrid)
+        {
+            builder.Append('\n');
+            PrintGrid(GenerateGrid(result));
+        }
         return builder.ToString();
     }
 
@@ -46,7 +51,7 @@ class ResultPrinter
     /// 
     /// This method has to run on the whole sequence of words at a time, since one of the markers is
     /// "reused", i.e. it depends on the previous words.
-    List<LetterMarker[]> GetMarkersForWordSequence(WordPositionDefinition[] positions)
+    static List<LetterMarker[]> GetMarkersForWordSequence(WordPositionDefinition[] positions)
     {
         var board = (LetterMarker[,])PuzzleGenerator.ScrabbleBoard.Clone();
         var result = new List<LetterMarker[]>(positions.Length);
@@ -68,6 +73,44 @@ class ResultPrinter
             result.Add(markers);
         }
         return result;
+    }
+
+    static char?[,] GenerateGrid(List<(WordPositionDefinition, string)> words)
+    {
+        var grid = new char?[PuzzleGenerator.BoardSize, PuzzleGenerator.BoardSize];
+        foreach (var (pos, word) in words)
+        {
+            int x = pos.startX;
+            int y = pos.startY;
+            for (int i = 0; i < word.Length; i++)
+            {
+                if (grid[x, y] != null && grid[x, y] != word[i])
+                    throw new System.Exception("Overlapping words");
+
+                grid[x, y] = word[i];
+                if (pos.direction == Direction.Right)
+                    x++;
+                else
+                    y++;
+            }
+        }
+        return grid;
+    }
+
+    void PrintGrid(char?[,] grid)
+    {
+        builder.Append("VVV Start copying below VVV\n");
+        for (int y = 0; y < PuzzleGenerator.BoardSize; y++)
+        {
+            for (int x = 0; x < PuzzleGenerator.BoardSize; x++)
+            {
+                if (grid[x, y] != null)
+                    builder.Append(grid[x, y].ToString().ToUpper());
+                if (y < PuzzleGenerator.BoardSize - 1) builder.Append('\t');
+            }
+            builder.Append('\n');
+        }
+        builder.Append("^^^ Stop copying above ^^^");
     }
 
     void PrintLetter(char c, LetterMarker m)
@@ -108,11 +151,8 @@ class ResultPrinter
     }
 }
 
-public readonly struct Options
+public struct Options
 {
-    public Options(bool enableColors)
-    {
-        this.enableColors = enableColors;
-    }
-    public readonly bool enableColors;
+    public bool enableColors;
+    public bool enableGrid;
 }

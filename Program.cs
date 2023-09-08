@@ -5,18 +5,53 @@ class Program
 {
     static int Main(string[] args)
     {
-        if (args.Length == 1 && (args[0] == "--help" || args[0] == "-h"))
+        int? exitCode = null;
+        string? word = null;
+        var options = new Options();
+        for (int i = 0; i < args.Length; i++)
         {
-            PrintUsage();
-            return 0;
+            if (args[i][0] != '-')
+            {
+                if (word != null)
+                {
+                    exitCode = 1;
+                    goto endOfParse;
+                }
+                word = args[i];
+                continue;
+            }
+
+            for (int j = 1; j < args[i].Length; j++)
+            {
+                switch (args[i][j])
+                {
+                    case 'c':
+                        options.enableColors = true;
+                        break;
+                    case 'g':
+                        options.enableGrid = true;
+                        break;
+                    case 'h':
+                        exitCode = 0;
+                        goto endOfParse;
+                    default:
+                        exitCode = 1;
+                        goto endOfParse;
+                }
+            }
         }
-        if (!(args.Length == 1 || (args.Length == 2 && args[0] == "-c")))
+    endOfParse: { }
+        if (exitCode != null)
         {
-            PrintUsage();
-            return 1;
+            Console.Error.WriteLine("Usage: ScrabblePuzzleGenerator [-cs] <plaintext>");
+            Console.Error.WriteLine("Flags:");
+            Console.Error.WriteLine("  -c: Enable colors in the output.");
+            Console.Error.WriteLine("  -g: Also print grid of letters formatted for pasting into spreadsheet.");
+            Console.Error.WriteLine("  -h: Print this help message.");
+            Console.Error.WriteLine("Plaintext (solution of the puzzle) must consist solely of letters a-z.");
+            return (int)exitCode;
         }
-        bool enableColors = args.Length == 2;
-        string plaintext = args[^1].ToLower();
+        string plaintext = word.ToLower();
         for (int i = 0; i < plaintext.Length; i++)
         {
             if (!char.IsAsciiLetterLower(plaintext[i]))
@@ -33,18 +68,9 @@ class Program
         {
             valuesSequence[i] = (ushort)(plaintext[i] - 'a');
         }
-        var printer = new ResultPrinter(new Options(enableColors));
+        var printer = new ResultPrinter(options);
         foreach (var result in generator.GeneratePuzzle(valuesSequence))
             Console.WriteLine(printer.PrintResult(result));
         return 0;
-    }
-
-    static void PrintUsage()
-    {
-        Console.Error.WriteLine("Usage: ScrabblePuzzleGenerator [-c] <plaintext>");
-        Console.Error.WriteLine("Flags:");
-        Console.Error.WriteLine("  -c: Enable colors in the output.");
-        Console.Error.WriteLine("  -h, --help: Print this help message.");
-        Console.Error.WriteLine("Plaintext (solution of the puzzle) must consist solely of letters a-z.");
     }
 }
