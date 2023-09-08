@@ -26,7 +26,7 @@ class Program
             }
         }
 
-        WordsDatabase wordsDb = new WordsDatabase("blex.txt", "letter_values.txt", 26);
+        WordsDatabase wordsDb = new("blex.txt", "letter_values.txt", 26);
         var generator = new PuzzleGenerator(wordsDb);
         var valuesSequence = new ushort[plaintext.Length];
         for (int i = 0; i < plaintext.Length; i++)
@@ -41,8 +41,10 @@ class Program
 
     static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: ScrabblePuzzleGenerator [-c] <alphanumericplaintext>");
+        Console.Error.WriteLine("Usage: ScrabblePuzzleGenerator [-c] <plaintext>");
         Console.Error.WriteLine("Flags:");
         Console.Error.WriteLine("  -c: Enable colors in the output.");
+        Console.Error.WriteLine("  -h, --help: Print this help message.");
+        Console.Error.WriteLine("Plaintext (solution of the puzzle) must consist solely of letters a-z.");
     }
 }

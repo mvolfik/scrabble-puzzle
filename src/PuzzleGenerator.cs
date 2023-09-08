@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace ScrabblePuzzleGenerator;
@@ -34,7 +33,7 @@ class PuzzleGenerator
         this.wordsDb = wordsDb;
     }
 
-    static readonly LetterMarker[,] ScrabbleBoard = new LetterMarker[BoardSize, BoardSize] {
+    public static readonly LetterMarker[,] ScrabbleBoard = new LetterMarker[BoardSize, BoardSize] {
         { LetterMarker.TripleWord, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.TripleWord },
         { LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.TripleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None },
         { LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.DoubleLetter, LetterMarker.None, LetterMarker.None, LetterMarker.None, LetterMarker.DoubleWord, LetterMarker.None, LetterMarker.None },
@@ -110,7 +109,7 @@ class PuzzleGenerator
             if (pos.startX > 0)
                 MarkSquare(ref grid, pos.startX - 1, pos.startY, wordIndex);
             if (pos.startX < BoardSize - 1)
-                MarkSquare(ref grid, pos.startX + 1, pos.startY, wordIndex);
+                MarkSquare(ref grid, pos.startX + pos.length, pos.startY, wordIndex);
 
         }
         else
@@ -126,11 +125,23 @@ class PuzzleGenerator
             if (pos.startY > 0)
                 MarkSquare(ref grid, pos.startX, pos.startY - 1, wordIndex);
             if (pos.startY < BoardSize - 1)
-                MarkSquare(ref grid, pos.startX, pos.startY + 1, wordIndex);
+                MarkSquare(ref grid, pos.startX, pos.startY + pos.length, wordIndex);
         }
     }
 
-    public IEnumerable<List<(char, LetterMarker)[]>> GeneratePuzzle(ushort[] valuesSequence)
+    static void PrintGrid(ref byte[,] grid)
+    {
+        for (int y = 0; y < BoardSize; y++)
+        {
+            for (int x = 0; x < BoardSize; x++)
+                Console.Write(grid[x, y] == FreeSquare ? "." : grid[x, y] == SquareNeighboringMultipleWords ? "#" : grid[x, y].ToString());
+            Console.WriteLine();
+        }
+        Console.WriteLine();
+        Console.WriteLine();
+    }
+
+    public IEnumerable<List<(WordPositionDefinition, string)>> GeneratePuzzle(ushort[] valuesSequence)
     {
         var occupiedSquares = new byte[BoardSize, BoardSize];
         for (int y = 0; y < BoardSize; y++)
@@ -151,31 +162,7 @@ class PuzzleGenerator
         }
     }
 
-    List<(char, LetterMarker)[]> GetMarkersFromSolution((WordPositionDefinition, string)[] placedWords)
-    {
-        var board = (LetterMarker[,])ScrabbleBoard.Clone();
-        var result = new List<(char, LetterMarker)[]>(placedWords.Length);
-        for (int i = 0; i < placedWords.Length; i++)
-        {
-            var (pos, word) = placedWords[i];
-            var markers = new (char, LetterMarker)[word.Length];
-            int x = pos.startX;
-            int y = pos.startY;
-            for (int j = 0; j < word.Length; j++)
-            {
-                markers[j] = (word[j], board[x, y]);
-                board[x, y] = LetterMarker.Reused;
-                if (pos.direction == Direction.Right)
-                    x++;
-                else
-                    y++;
-            }
-            result.Add(markers);
-        }
-        return result;
-    }
-
-    IEnumerable<List<(char, LetterMarker)[]>> GeneratePuzzleInner(
+    IEnumerable<List<(WordPositionDefinition, string)>> GeneratePuzzleInner(
         int index,
         ushort[] valuesSequence,
         byte[,] occupiedSquares,
@@ -183,7 +170,7 @@ class PuzzleGenerator
     {
         if (index == valuesSequence.Length)
         {
-            yield return GetMarkersFromSolution(placedWords);
+            yield return placedWords.ToList();
             yield break;
         }
 
@@ -244,7 +231,7 @@ class PuzzleGenerator
                             word[letterIndex]))
                         {
                             var squaresCopy = (byte[,])occupiedSquares.Clone();
-                            MarkSquares(ref squaresCopy, nextPos, placedWordI);
+                            MarkSquares(ref squaresCopy, nextPos, index);
                             placedWords[index] = (nextPos, nextWord);
                             foreach (var result in GeneratePuzzleInner(index + 1, valuesSequence, squaresCopy, placedWords))
                             {

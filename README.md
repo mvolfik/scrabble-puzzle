@@ -22,3 +22,19 @@ Např.:
 Volitelně (zapnutí vstupním parametrem) možnost označit barevně ve výstupu dílky (písmena), které leží na bonusových polích.
 
 **Algoritmické řešení:** řekl bych, že jde o poměrně unikátní problém, netroufám si tedy rovnou říct, o jak složitý problém jde. Úvodní implementace bude prohledávání do hloubky všech možností, na tomto základu pak lze implementovat optimalizace: předpočítání slov s vhodnými hodnotami, hodnocení stavů dle počtu "volných" písmen a prioritizace prohledávání (A*-like algoritmus), průzkum možnosti paralelizace.
+
+## Spuštění
+
+```
+dotnet build -c Release
+./bin/Release/net7.0/ScrabblePuzzleGenerator [-c] <resenisifry>
+```
+
+Flag `-c` zapíná barevný výstup, vypisovaný pomocí ANSI escape sekvencí.
+
+Řešení šifry musí být složeno výhradně z písmen a-z bez diakritiky. Po ohodnocení Scrabble hry vyjdou čísla, která : znaky jsou převedeny na čísla podle pořadí v abecedě (a = 0, b = 1, ...)
+
+Usage: ScrabblePuzzleGenerator [-c] <alphanumericplaintext>
+Flags:
+  -c: Enable colors in the output.
+```
