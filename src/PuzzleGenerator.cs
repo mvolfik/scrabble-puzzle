@@ -72,7 +72,7 @@ class PuzzleGenerator
             var (wordBonus, isDoubled, isTripled) = GetBonusFromMarker(pos.direction == Direction.Right
                 ? ScrabbleBoard[pos.startX + i, pos.startY]
                 : ScrabbleBoard[pos.startX, pos.startY + i]);
-            value += wordBonus;
+            wordMultiplier *= wordBonus;
             if (isDoubled)
                 doubledIndices.Add(i);
             if (isTripled)
