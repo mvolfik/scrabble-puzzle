@@ -175,6 +175,10 @@ class PuzzleGenerator
             yield break;
         }
 
+        // we need to find all available positions as specified by overlapping letter and length,
+        // and then try only those where exists only 1 concrete placement
+        var availablePositions = new Dictionary<(byte specifiedIndex, char specifiedLetter, byte length), List<WordPositionDefinition>>();
+
         for (int placedWordI = 0; placedWordI < index; placedWordI++)
         {
             var (pos, word) = placedWords[placedWordI];
@@ -187,7 +191,7 @@ class PuzzleGenerator
                 return value != FreeSquare && value != placedWordI;
             }
 
-            for (int letterIndex = 0; letterIndex < word.Length; letterIndex++)
+            for (byte letterIndex = 0; letterIndex < word.Length; letterIndex++)
             {
                 int wordDirectionCoord = (pos.direction == Direction.Right ? pos.startX : pos.startY) + letterIndex;
                 int middlePerpendicularCoord = pos.direction == Direction.Right ? pos.startY : pos.startX;
@@ -225,21 +229,32 @@ class PuzzleGenerator
                             nextDir == Direction.Right ? wordDirectionCoord : startCoord,
                             nextDir,
                             length);
-                        foreach (var nextWord in GetWordsForPosition(
-                            nextPos,
-                            valuesSequence[index],
-                            (byte)(middlePerpendicularCoord - startCoord),
-                            word[letterIndex]))
-                        {
-                            var squaresCopy = (byte[,])occupiedSquares.Clone();
-                            MarkSquares(ref squaresCopy, nextPos, index);
-                            placedWords[index] = (nextPos, nextWord);
-                            foreach (var result in GeneratePuzzleInner(index + 1, valuesSequence, squaresCopy, placedWords))
-                            {
-                                yield return result;
-                            }
-                        }
+                        var key = ((byte)(middlePerpendicularCoord - startCoord), word[letterIndex], length);
+                        if (!availablePositions.ContainsKey(key))
+                            availablePositions[key] = new List<WordPositionDefinition>();
+                        availablePositions[key].Add(nextPos);
                     }
+                }
+            }
+        }
+
+        foreach (var (key, positions) in availablePositions)
+        {
+            if (positions.Count != 1) continue;
+            var nextPos = positions[0];
+
+            foreach (var nextWord in GetWordsForPosition(
+                nextPos,
+                valuesSequence[index],
+                key.specifiedIndex,
+                key.specifiedLetter))
+            {
+                var squaresCopy = (byte[,])occupiedSquares.Clone();
+                MarkSquares(ref squaresCopy, nextPos, index);
+                placedWords[index] = (nextPos, nextWord);
+                foreach (var result in GeneratePuzzleInner(index + 1, valuesSequence, squaresCopy, placedWords))
+                {
+                    yield return result;
                 }
             }
         }
