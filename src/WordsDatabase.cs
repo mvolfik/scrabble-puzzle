@@ -7,6 +7,10 @@ using System.Linq;
 namespace ScrabblePuzzleGenerator;
 class WordsDatabase
 {
+    /// Official Czech Scrabble Associaction dictionary "blex" only provides this length for download.
+    /// This could be increased: theoretical limit is 8: you have 7 letters in your file, and the eight one was on the table.
+    /// Apart from changing this value, you would also need to do modifications to generation of the lookup dictionary (some
+    /// more bonus field combinations are possible).
     public const int MaxWordLength = 5;
 
     readonly Dictionary<char, ushort> values;
@@ -76,7 +80,12 @@ class WordsDatabase
     static Dictionary<char, ushort> ReadValues(string filename)
     {
         Dictionary<char, ushort> values = new();
-        string[] lines = File.ReadAllLines(filename);
+        string[] lines;
+
+        try { lines = File.ReadAllLines(filename); }
+        catch (FileNotFoundException) { throw new UserInputError($"File '{filename}' not found."); }
+        catch (IOException) { throw new UserInputError($"Error reading file '{filename}'."); }
+
         foreach (string line in lines)
         {
             string[] parts = line.Split(' ');
@@ -104,8 +113,17 @@ class WordsDatabase
         Dictionary<DatabaseKey, List<string>> words = new();
         ushort maxValue = 0;
 
-        foreach (string w in File.ReadAllLines(dictionaryFilename))
+        string[] lines;
+        try { lines = File.ReadAllLines(dictionaryFilename); }
+        catch (FileNotFoundException) { throw new UserInputError($"File '{dictionaryFilename}' not found."); }
+        catch (IOException) { throw new UserInputError($"Error reading file '{dictionaryFilename}'."); }
+        foreach (string w in lines)
         {
+            if (w.Length > MaxWordLength)
+            {
+                Console.Error.WriteLine($"Warning: Word '{w}' is too long, skipping");
+                continue;
+            }
             var letterValues = new ushort[w.Length];
             for (byte i = 0; i < w.Length; i++)
             {
