@@ -4,10 +4,10 @@ using System.Text;
 namespace ScrabblePuzzleGenerator;
 class ResultPrinter
 {
-    readonly Options options;
+    readonly PrintOptions options;
     StringBuilder builder = new();
 
-    public ResultPrinter(Options options)
+    public ResultPrinter(PrintOptions options)
     {
         this.options = options;
     }
@@ -85,7 +85,7 @@ class ResultPrinter
             for (int i = 0; i < word.Length; i++)
             {
                 if (grid[x, y] != null && grid[x, y] != word[i])
-                    throw new System.Exception("Overlapping words");
+                    throw new System.Exception("Internal error (likely bug): Overlapping words");
 
                 grid[x, y] = word[i];
                 if (pos.direction == Direction.Right)
@@ -151,7 +151,7 @@ class ResultPrinter
     }
 }
 
-public struct Options
+public struct PrintOptions
 {
     public bool enableColors;
     public bool enableGrid;

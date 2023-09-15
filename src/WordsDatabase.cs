@@ -89,13 +89,12 @@ class WordsDatabase
         foreach (string line in lines)
         {
             string[] parts = line.Split(' ');
-            if (parts.Length != 2)
-                throw new InvalidDataException("Invalid values file format.");
+            if (parts.Length != 2 || parts[0].Length != 1 || !char.IsLower(parts[0][0]))
+                throw new UserInputError("Invalid values file format.");
 
-            if (parts[0].Length != 1)
-                throw new InvalidDataException("Invalid values file format.");
-
-            values[parts[0][0]] = ushort.Parse(parts[1]);
+            if (!ushort.TryParse(parts[1], out ushort value))
+                throw new UserInputError("Invalid values file format.");
+            values[parts[0][0]] = value;
         }
         return values;
     }
@@ -117,8 +116,10 @@ class WordsDatabase
         try { lines = File.ReadAllLines(dictionaryFilename); }
         catch (FileNotFoundException) { throw new UserInputError($"File '{dictionaryFilename}' not found."); }
         catch (IOException) { throw new UserInputError($"Error reading file '{dictionaryFilename}'."); }
-        foreach (string w in lines)
+        foreach (string word in lines)
         {
+            string w = word.ToLower();
+            if (w.Length <= 1) continue;
             if (w.Length > MaxWordLength)
             {
                 Console.Error.WriteLine($"Warning: Word '{w}' is too long, skipping");
