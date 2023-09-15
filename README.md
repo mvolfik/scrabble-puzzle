@@ -102,9 +102,11 @@ Tato tabulka je poměrně velká: pro používaný seznam 34 tisíc tří- až p
 
 Samotný algoritmus v třídě `PuzzleGenerator` už je pak poměrně přímočaré prohledávání do hloubky. V prvním kroku generujeme všechny slova s danou hodnotou, v dalších úrovních rekurze pak procházíme dříve položená slova, a zjišťujeme, zda je možné kolmo na ně položit nové slovo. Všechna tato dostupná místa si v daném kroku posbíráme, a pak se podíváme, jaké "specifikace", tedy délka a "zadané" písmeno (to, přes které se slova kříží), byly unikátní, a můžeme je do zadání použít. Pro tyto se už pouze zeptáme třídy `WordsDatabase` na seznam slov už podle konkrétních bonusových políček, která na daném místě jsou, a pokračujeme v rekurzi.
 
-Nejdůležitější zde bylo si rozmyslet, jak zjišťovat, zda je možné slovo na danou pozici položit. Já používám tabulku, kde si u každého pole značím, zda je volné, obsazené konkrétním slovem, nebo obsazené alespoň dvěmi, tedy už nepoužitelné. Když položím slovo a tuto tabulku posílám do rekurze, pouze v tabulce označím okolí nového slova, což je výrazdně jednodušší než se na okolí koukat při vyhledávání.
+Nejdůležitější zde bylo si rozmyslet, jak zjišťovat, zda je možné slovo na danou pozici položit. Já používám tabulku, kde si u každého pole značím, zda je volné, obsazené konkrétním slovem, nebo obsazené alespoň dvěmi, tedy už nepoužitelné. Když položím slovo a tuto tabulku posílám do rekurze, pouze v tabulce označím okolí nového slova, což je výrazdně jednodušší než se na okolí koukat při vyhledávání. Implementace tohoto rozhraní je ve třídě `OccupiedSquaresTracker`.
 
 Ve chvíli, kdy úspěšně položíme slovo pro každé písmeno/číslo z tajenky, pomocí iterátoru (rozhraní `IEnumerable`) vrátíme pouze seznam slov a jejich pozic. Tento seznam pak zpracuje třída `ResultPrinter`, která si opět dohledá bonusová políčka, podle pořadí skládání správně zaznačí překryvová políčka, a vše StringBuilderem zformátuje do stringu s nastavením podle argumentů.
+
+Mimo tyto hlavní třídy existují dvě malé statické třídy: ve třídě `Helpers` je abstrahovaný často používaný pattern přidávání prvků pro slovníky, které jako hodnoty obsahují seznamy prvků, a třída `GridFormatter` vyděluje formátování výstupu do tabulky pro copy-paste do vizualizace řešení.
 
 ## Testy
 

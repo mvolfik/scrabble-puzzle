@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 
 namespace ScrabblePuzzleGenerator;
 
+/// <summary>
+/// Marker of a grid square on the game board or letter in a placed work, specifying bonuses and rendering.
+/// </summary>
 public enum LetterMarker
 {
     None,
@@ -26,9 +30,9 @@ class PuzzleGenerator
     public const int BoardSize = 15;
     public const int MaxWordLength = 5;
 
-    readonly WordsDatabase wordsDb;
+    readonly ScoredWordsDatabase wordsDb;
 
-    public PuzzleGenerator(WordsDatabase wordsDb)
+    public PuzzleGenerator(ScoredWordsDatabase wordsDb)
     {
         this.wordsDb = wordsDb;
     }
@@ -60,11 +64,16 @@ class PuzzleGenerator
         _ => (1, false, false),
     };
 
+    /// <summary>
+    /// Get all words that have given value when placed at given position
+    /// </summary>
     IEnumerable<string> GetWordsForPosition(WordPositionDefinition pos, ushort value, byte specifiedLetterIndex, char specifiedLetter)
     {
         ushort wordMultiplier = 1;
         var doubledIndices = new List<byte>();
         var tripledIndices = new List<byte>();
+
+        // for each letter, check the LetterMarker and modify the variables above if needed
         for (byte i = 0; i < pos.length; i++)
         {
             if (i == specifiedLetterIndex) // specified letter, i.e. already placed, ignore bonuses here
@@ -82,79 +91,21 @@ class PuzzleGenerator
         return wordsDb.GetWords(key, wordMultiplier);
     }
 
-    static void MarkSquare(ref byte[,] grid, int x, int y, int wordIndex)
-    {
-        if (grid[x, y] == FreeSquare)
-            grid[x, y] = (byte)wordIndex;
-        else
-            grid[x, y] = SquareNeighboringMultipleWords;
-    }
-
-    const byte FreeSquare = byte.MaxValue;
-    // square unusable under any circumstances
-    const byte SquareNeighboringMultipleWords = byte.MaxValue - 1;
-
-    static void MarkSquares(ref byte[,] grid, WordPositionDefinition pos, int wordIndex)
-    {
-        if (pos.direction == Direction.Right)
-        {
-            for (int x = pos.startX; x < pos.startX + pos.length; x++)
-            {
-                MarkSquare(ref grid, x, pos.startY, wordIndex);
-                if (pos.startY > 0)
-                    MarkSquare(ref grid, x, pos.startY - 1, wordIndex);
-                if (pos.startY < BoardSize - 1)
-                    MarkSquare(ref grid, x, pos.startY + 1, wordIndex);
-            }
-            if (pos.startX > 0)
-                MarkSquare(ref grid, pos.startX - 1, pos.startY, wordIndex);
-            if (pos.startX + pos.length < BoardSize)
-                MarkSquare(ref grid, pos.startX + pos.length, pos.startY, wordIndex);
-
-        }
-        else
-        {
-            for (int y = pos.startY; y < pos.startY + pos.length; y++)
-            {
-                MarkSquare(ref grid, pos.startX, y, wordIndex);
-                if (pos.startX > 0)
-                    MarkSquare(ref grid, pos.startX - 1, y, wordIndex);
-                if (pos.startX < BoardSize - 1)
-                    MarkSquare(ref grid, pos.startX + 1, y, wordIndex);
-            }
-            if (pos.startY > 0)
-                MarkSquare(ref grid, pos.startX, pos.startY - 1, wordIndex);
-            if (pos.startY + pos.length < BoardSize)
-                MarkSquare(ref grid, pos.startX, pos.startY + pos.length, wordIndex);
-        }
-
-    }
-
-    static void PrintGrid(ref byte[,] grid)
-    {
-        for (int y = 0; y < BoardSize; y++)
-        {
-            for (int x = 0; x < BoardSize; x++)
-                Console.Write(grid[x, y] == FreeSquare ? "." : grid[x, y] == SquareNeighboringMultipleWords ? "#" : grid[x, y].ToString());
-            Console.WriteLine();
-        }
-        Console.WriteLine();
-        Console.WriteLine();
-    }
-
+    /// <summary>
+    /// Generates all possible puzzles for given values sequence.
+    /// This enumerates all possible starting words (since that is a separate), and then for each calls the recursive
+    /// function GeneratePuzzleInner
+    /// </summary>
     public IEnumerable<List<(WordPositionDefinition, string)>> GeneratePuzzle(ushort[] valuesSequence)
     {
-        var occupiedSquares = new byte[BoardSize, BoardSize];
-        for (int y = 0; y < BoardSize; y++)
-            for (int x = 0; x < BoardSize; x++)
-                occupiedSquares[x, y] = FreeSquare;
+        var occupiedSquares = new OccupiedSquaresTracker(BoardSize);
 
         foreach (var (word, startX) in wordsDb.GetStartingWords(valuesSequence[0]))
         {
-            var squaresCopy = (byte[,])occupiedSquares.Clone();
+            var squaresCopy = occupiedSquares.Clone();
             // starting only with right direction, down would be equal just with flipped x/y
             WordPositionDefinition wordPositionDefinition = new(startX, 7, Direction.Right, (byte)word.Length);
-            MarkSquares(ref squaresCopy, wordPositionDefinition, 0);
+            squaresCopy.MarkSquares(wordPositionDefinition, 0);
             var placedWords = new (WordPositionDefinition, string)[valuesSequence.Length];
             placedWords[0] = (wordPositionDefinition, word);
             var results = GeneratePuzzleInner(1, valuesSequence, squaresCopy, placedWords);
@@ -163,59 +114,65 @@ class PuzzleGenerator
         }
     }
 
+    /// <summary>
+    /// Recursive function for generating the puzzle. Will try to place a word with given index in the sequence of values.
+    /// occupiedSquares and placedWords provide information about already placed words in parent recursion levels.
+    /// 
+    /// placeWords must have the same length as valuesSequence, and items at i >= index are ignored.
+    /// </summary>
     IEnumerable<List<(WordPositionDefinition, string)>> GeneratePuzzleInner(
-        int index,
+        byte index,
         ushort[] valuesSequence,
-        byte[,] occupiedSquares,
+        OccupiedSquaresTracker occupiedSquares,
         (WordPositionDefinition, string)[] placedWords)
     {
+        // we have successfully placed all words according to the rules, yield the result and exit the function
         if (index == valuesSequence.Length)
         {
             yield return placedWords.ToList();
             yield break;
         }
 
-        // we need to find all available positions as specified by overlapping letter and length,
-        // and then try only those where exists only 1 concrete placement
-        var availablePositions = new Dictionary<(byte specifiedIndex, char specifiedLetter, byte length), List<WordPositionDefinition>>();
+        // we need to find all available specifications (ambiguous as in the puzzle assignment that we're creating),
+        // and then try placing specific words only into those where exists only 1 valid placement
+        var possibleWordSpecs = new Dictionary<(byte specifiedIndex, char specifiedLetter, byte length), List<WordPositionDefinition>>();
 
-        for (int placedWordI = 0; placedWordI < index; placedWordI++)
+        for (byte previousWordI = 0; previousWordI < index; previousWordI++)
         {
-            var (pos, word) = placedWords[placedWordI];
-
-            bool isOccupied(int wordDirectionCoord, int perpendicularCoord)
+            var (previousPos, previousWord) = placedWords[previousWordI];
+            for (byte letterIndex = 0; letterIndex < previousWord.Length; letterIndex++)
             {
-                var value = pos.direction == Direction.Right
-                    ? occupiedSquares[wordDirectionCoord, perpendicularCoord]
-                    : occupiedSquares[perpendicularCoord, wordDirectionCoord];
-                return value != FreeSquare && value != placedWordI;
-            }
+                // For each letter of the already placed word, we get a fixed wordDirectionCoord, and scanning
+                // the potential placement of the next word will change the perpendicular coordinate. Therefore we don't have to check x/y all over the place.
+                int wordDirectionCoord = (previousPos.direction == Direction.Right ? previousPos.startX : previousPos.startY) + letterIndex;
+                int middlePerpendicularCoord = previousPos.direction == Direction.Right ? previousPos.startY : previousPos.startX;
 
-            for (byte letterIndex = 0; letterIndex < word.Length; letterIndex++)
-            {
-                int wordDirectionCoord = (pos.direction == Direction.Right ? pos.startX : pos.startY) + letterIndex;
-                int middlePerpendicularCoord = pos.direction == Direction.Right ? pos.startY : pos.startX;
+                // find minimum and maximum free coordinate perpendicular to the previous word
                 int perpendicularCoordMin = middlePerpendicularCoord;
+                // scan left/up
                 while (perpendicularCoordMin > middlePerpendicularCoord - MaxWordLength + 1)
                 {
                     perpendicularCoordMin--;
-                    if (perpendicularCoordMin < 0 || isOccupied(wordDirectionCoord, perpendicularCoordMin))
+                    if (perpendicularCoordMin < 0 || occupiedSquares.IsOccupiedRelative(previousPos.direction, wordDirectionCoord, perpendicularCoordMin, previousWordI))
                     {
+                        // we can't use this one, go a step back
                         perpendicularCoordMin++;
                         break;
                     }
                 }
                 int perpendicularCoordMax = middlePerpendicularCoord;
+                // scan right/down
                 while (perpendicularCoordMax < middlePerpendicularCoord + MaxWordLength - 1)
                 {
                     perpendicularCoordMax++;
-                    if (perpendicularCoordMax >= BoardSize || isOccupied(wordDirectionCoord, perpendicularCoordMax))
+                    if (perpendicularCoordMax >= BoardSize || occupiedSquares.IsOccupiedRelative(previousPos.direction, wordDirectionCoord, perpendicularCoordMax, previousWordI))
                     {
                         perpendicularCoordMax--;
                         break;
                     }
                 }
 
+                // iterate all lengths and offsets of words that fit into the available space
                 for (int startCoord = perpendicularCoordMin; startCoord <= middlePerpendicularCoord; startCoord++)
                 {
                     for (int endCoord = middlePerpendicularCoord; endCoord <= perpendicularCoordMax; endCoord++)
@@ -223,23 +180,24 @@ class PuzzleGenerator
                         byte length = (byte)(endCoord - startCoord + 1);
                         if (length > MaxWordLength)
                             continue;
-                        var nextDir = pos.direction == Direction.Right ? Direction.Down : Direction.Right;
+                        var nextDir = previousPos.direction == Direction.Right ? Direction.Down : Direction.Right;
                         var nextPos = new WordPositionDefinition(
                             nextDir == Direction.Right ? startCoord : wordDirectionCoord,
                             nextDir == Direction.Right ? wordDirectionCoord : startCoord,
                             nextDir,
                             length);
-                        var key = ((byte)(middlePerpendicularCoord - startCoord), word[letterIndex], length);
-                        if (!availablePositions.ContainsKey(key))
-                            availablePositions[key] = new List<WordPositionDefinition>();
-                        availablePositions[key].Add(nextPos);
+                        // calculate the nextWord-relative index of the overlapping letter
+                        var specifiedIndex = (byte)(middlePerpendicularCoord - startCoord);
+                        var key = (specifiedIndex, previousWord[letterIndex], length);
+                        Helpers.DictListAdd(ref possibleWordSpecs, key, nextPos);
                     }
                 }
             }
         }
 
-        foreach (var (key, positions) in availablePositions)
+        foreach (var (key, positions) in possibleWordSpecs)
         {
+            // as explained above, only use specifications which have only 1 valid placement
             if (positions.Count != 1) continue;
             var nextPos = positions[0];
 
@@ -249,10 +207,10 @@ class PuzzleGenerator
                 key.specifiedIndex,
                 key.specifiedLetter))
             {
-                var squaresCopy = (byte[,])occupiedSquares.Clone();
-                MarkSquares(ref squaresCopy, nextPos, index);
+                var squaresCopy = occupiedSquares.Clone();
+                squaresCopy.MarkSquares(nextPos, index);
                 placedWords[index] = (nextPos, nextWord);
-                foreach (var result in GeneratePuzzleInner(index + 1, valuesSequence, squaresCopy, placedWords))
+                foreach (var result in GeneratePuzzleInner((byte)(index + 1), valuesSequence, squaresCopy, placedWords))
                 {
                     yield return result;
                 }

@@ -11,7 +11,7 @@ ScrabblePuzzleGenerator -csgd blex.txt something # custom dictionary
 ScrabblePuzzleGenerator something -s -d blex.txt -v letter_values.txt # custom dictionary and letter values
 ScrabblePuzzleGenerator -sn26 0,1,2 # numeric mode
 ScrabblePuzzleGenerator -s -n 26 0,1,2 # numeric mode, single result
-ScrablePuzzleGenerator -n 0,1,2 # numeric 0 without modulo, this will have no results
+ScrabblePuzzleGenerator -n 0,1,2 # numeric 0 without modulo, this will have no results
 ScrabblePuzzleGenerator UppercaseIsIgnored -s
 ```
 

@@ -151,7 +151,7 @@ class Program
                 }
             }
 
-            WordsDatabase wordsDb = new(dictionaryFilename, valuesFilename, numeric ? modulo : 26);
+            ScoredWordsDatabase wordsDb = new(dictionaryFilename, valuesFilename, numeric ? modulo : 26);
             var generator = new PuzzleGenerator(wordsDb);
             var printer = new ResultPrinter(printOptions);
             foreach (var result in generator.GeneratePuzzle(valuesSequence))
