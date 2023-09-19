@@ -89,7 +89,7 @@ Mezi sadami slov pro jednotlivá řešení jsou 3 prázdné řádky.
 
 Program je rozdělen do několika tříd.
 
-`Program.cs` obsahuje hlavní třídu `Program` s funkcí `Main`, která zpracuje a validuje argumenty, a na základě nich inicializuje databázi slov, spustí generátor šifer a pro každý výsledek zavolá generátor textového výstupu. Pro snadnější vyskakování ze vnořených cyklů zde používám `goto`.
+`Program.cs` obsahuje hlavní třídu `Program` s funkcí `Main`, která zpracuje a validuje argumenty, a na základě nich inicializuje databázi slov, spustí generátor šifer a pro každý výsledek zavolá generátor textového výstupu.
 
 Třída `WordsDatabase` si načítá seznam slov, které může v zadání používat, a definici bodových hodnot jednotlivých písmen. Z tohoto si předpočítá velkou tabulku, díky které je pak schopná pro konkrétní situaci na plánku a bodovou hodnotu v _průměrně_ konstantním čase vrátit seznam slov. Konkrétně se klíč sestává z:
 

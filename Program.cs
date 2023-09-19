@@ -23,6 +23,7 @@ class Program
 
         for (int i = 0; i < args.Length; i++)
         {
+            bool breakOuterLoop = false;
             if (nextWordIsMaybeModulo)
             {
                 nextWordIsMaybeModulo = false;
@@ -50,7 +51,7 @@ class Program
                 if (plaintext != null)
                 {
                     exitCode = 1;
-                    goto endOfParse;
+                    break;
                 }
                 plaintext = args[i];
                 continue;
@@ -58,6 +59,7 @@ class Program
 
             for (int j = 1; j < args[i].Length; j++)
             {
+                bool breakLettersLoop = false;
                 switch (args[i][j])
                 {
                     case 'c':
@@ -74,15 +76,18 @@ class Program
                         if (j == args[i].Length - 1)
                         {
                             nextWordIsMaybeModulo = true;
-                            goto parseNextArg;
+                            breakLettersLoop = true;
+                            break;
                         }
                         if (ushort.TryParse(args[i].Substring(j + 1), out ushort value))
                         {
                             modulo = value;
-                            goto parseNextArg;
+                            breakLettersLoop = true;
+                            break;
                         }
                         exitCode = 1;
-                        goto endOfParse;
+                        breakOuterLoop = true;
+                        break;
                     case 'd':
                         if (j != args[i].Length - 1)
                         {
@@ -90,7 +95,8 @@ class Program
                             return 1;
                         }
                         nextWordIsDictionary = true;
-                        goto parseNextArg;
+                        breakLettersLoop = true;
+                        break;
                     case 'v':
                         if (j != args[i].Length - 1)
                         {
@@ -98,18 +104,23 @@ class Program
                             return 1;
                         }
                         nextWordIsValues = true;
-                        goto parseNextArg;
+                        breakLettersLoop = true;
+                        break;
                     case 'h':
                         exitCode = 0;
-                        goto endOfParse;
+                        breakLettersLoop = true;
+                        breakOuterLoop = true;
+                        break;
                     default:
                         exitCode = 1;
-                        goto endOfParse;
+                        breakLettersLoop = true;
+                        breakOuterLoop = true;
+                        break;
                 }
+                if (breakLettersLoop) break;
             }
-        parseNextArg: { }
+            if (breakOuterLoop) break;
         }
-    endOfParse: { }
         if (nextWordIsDictionary || nextWordIsValues)
         {
             Console.Error.WriteLine("Error: -d and -v flags must be followed by a space and then a filename.");
