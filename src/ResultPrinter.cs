@@ -2,6 +2,13 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace ScrabblePuzzleGenerator;
+
+/// <summary>
+/// Class to print a result created by PuzzleGenerator. Instantiate it with your preferred output options, then you can repeatedly call PrintResult() to get
+/// string representations of the result.
+/// 
+/// If colors are enabled, ANSI escape codes are used to color the output, which is suitable for printing to terminals.
+/// </summary>
 class ResultPrinter
 {
     readonly PrintOptions options;

@@ -1,30 +1,12 @@
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 
 namespace ScrabblePuzzleGenerator;
 
 /// <summary>
-/// Marker of a grid square on the game board or letter in a placed work, specifying bonuses and rendering.
+/// The main class of this project, the puzzle generator. Instantiate it with a ScoredWordsDatabase, and then you can repeatedly call GeneratePuzzle to generate
+/// puzzles with the solutions that you need.
 /// </summary>
-public enum LetterMarker
-{
-    None,
-    StartingSquare,
-    Reused,
-    DoubleWord,
-    TripleWord,
-    DoubleLetter,
-    TripleLetter,
-}
-
-public enum Direction
-{
-    Right,
-    Down,
-}
-
 class PuzzleGenerator
 {
     public const int BoardSize = 15;
@@ -233,4 +215,24 @@ public readonly struct WordPositionDefinition
         this.direction = direction;
         this.length = length;
     }
+}
+
+/// <summary>
+/// Marker of a grid square on the game board or letter in a placed work, specifying bonuses and rendering.
+/// </summary>
+public enum LetterMarker
+{
+    None,
+    StartingSquare,
+    Reused,
+    DoubleWord,
+    TripleWord,
+    DoubleLetter,
+    TripleLetter,
+}
+
+public enum Direction
+{
+    Right,
+    Down,
 }

@@ -5,6 +5,13 @@ using System.IO;
 using System.Linq;
 
 namespace ScrabblePuzzleGenerator;
+
+/// <summary>
+/// Instantiate this class with filenames of your dictionary and letter values mapping. Then you can pass it to PuzzleGenerator.
+/// 
+/// After instantiation, this class is immutable, meaning you can use it from multiple instances of PuzzleGenerator with different
+/// settings, if you want to generate multiple puzzles using the same list of words.
+/// </summary>
 class ScoredWordsDatabase
 {
     /// Official Czech Scrabble Associaction dictionary "blex" only provides this length for download.

@@ -6,6 +6,7 @@ class Program
 {
     static int Main(string[] args)
     {
+        // Parse command line arguments
         int? exitCode = null;
         string? plaintext = null;
         bool numeric = false;
@@ -131,6 +132,7 @@ class Program
             return (int)exitCode;
         }
 
+        // Parsing was successful, run the program, catch any errors caused by invalid user input.
         try
         {
             ushort[] valuesSequence;

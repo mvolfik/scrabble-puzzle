@@ -1,5 +1,18 @@
 namespace ScrabblePuzzleGenerator;
 
+/// <summary>
+/// Utility class for keeping track of which squares on a grid can be used and which not.
+/// 
+/// Grid tiles can be in 3 states:
+/// - free
+/// - occupied by marker X (byte in range 0-253 inclusive)
+/// - completely blocked (occupied by 2+ markers)
+/// 
+/// Create an instance of this class with specific size, then use MarkSquares() to mark squares under and neigboring a word.
+/// 
+/// Then use IsOccupied() to check if a square is free or not. You can also use the helper method IsOccupiedRelative(),
+/// which takes word direction, and the axes of the coordinates are relative to the word.
+/// </summary>
 class OccupiedSquaresTracker
 {
     /// <summary>
@@ -33,17 +46,20 @@ class OccupiedSquaresTracker
         size = grid.GetLength(0);
     }
 
+    /// <summary>
+    /// Deep copy of the grid. Relatively cheap - only a copy of byte[,], which is usually optimized to memcpy.
+    /// </summary>
     public OccupiedSquaresTracker Clone()
     {
         return new OccupiedSquaresTracker((byte[,])grid.Clone());
     }
 
     /// <summary>
-    /// Marks given square as blocked by given word (either directly occupied, or neighboring with it).
+    /// Marks given square as blocked by given marker.
     /// 
-    /// If the square is already blocked by another word, it is marked with the flag SquareNeighboringMultipleWords.
+    /// If the square is already blocked by another marker, it is directly marked as completely unusable.
     /// </summary>
-    void MarkSquare(int x, int y, byte marker)
+    public void MarkSquare(int x, int y, byte marker)
     {
         if (marker == FreeSquare || marker == SquareNeighboringMultipleWords)
             throw new System.ArgumentException("Invalid marker value", nameof(marker));
@@ -93,13 +109,18 @@ class OccupiedSquaresTracker
     }
 
     /// <summary>
-    /// Checks if given tile is free or only blocked by given marker
+    /// Checks if given tile is free or only blocked by given marker.
     /// </summary>
     public bool IsOccupied(int x, int y, byte allowedMarker)
     {
         return grid[x, y] != FreeSquare && grid[x, y] != allowedMarker;
     }
 
+    /// <summary>
+    /// If the direction is to the right, the directionCoord is X, and perpendicular coord is Y. When the direction is Down, the axes are flipped.
+    /// 
+    /// Otherwise same as IsOccupied()
+    /// </summary>
     public bool IsOccupiedRelative(Direction direction, int directionCoord, int perpendicularCoord, byte allowedMarker)
     {
         return direction == Direction.Right

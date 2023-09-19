@@ -3,6 +3,9 @@ using System.Text;
 
 namespace ScrabblePuzzleGenerator;
 
+/// <summary>
+/// Utility class to render a list of placed words to the board, represented by a list of letters suitable for copy-paste into spreadsheet software.
+/// </summary>
 static class GridFormatter
 {
     static char?[,] PlaceLettersOnGrid(List<(WordPositionDefinition, string)> words)
